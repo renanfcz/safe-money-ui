@@ -14,14 +14,17 @@ interface ExpensesProps {
 }
 type Category = {
   title: string;
+  id: string;
 };
 
 type NewExpense = {
   title: string;
   description: string;
-  category: string;
+  categoryId: string;
   value: number;
   status: string;
+  month: string;
+  year: string;
 };
 
 function formatCurrency(value: number) {
@@ -37,7 +40,7 @@ function getStatusStyle(status: string) {
   }
 
   if (status == "PAID") {
-    return "text-lime-500 font-bold";
+    return "text-green-600 font-bold";
   }
 }
 
@@ -47,13 +50,17 @@ function getTotal({ expenses }: ExpensesProps) {
 
 export function Table({ expenses }: ExpensesProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([{ title: "" }]);
+  const [categories, setCategories] = useState<Category[]>([
+    { id: "", title: "" },
+  ]);
   const [newExpense, setNewExpense] = useState<NewExpense>({
     title: "",
     description: "",
-    category: "",
+    categoryId: "",
     value: 0,
     status: "",
+    month: "",
+    year: "",
   });
 
   useEffect(() => {
@@ -88,15 +95,17 @@ export function Table({ expenses }: ExpensesProps) {
         mutation: INSERT_EXPENSE,
         variables: {
           data: {
-            title: newExpense?.title,
-            description: newExpense?.description,
-            category: newExpense?.category,
-            value: newExpense?.value,
-            status: newExpense?.status
+            title: newExpense.title,
+            description: newExpense.description,
+            categoryId: newExpense.categoryId,
+            value: parseFloat(newExpense.value.toString()),
+            status: newExpense.status,
+            month: expenses[0].month,
+            year: expenses[0].year,
           },
         },
       })
-      .then((result) => setCategories(result.data.findAllCategories))
+      .then((result) => console.log(result))
       .catch((error) => {
         console.log(error);
       });
@@ -188,14 +197,14 @@ export function Table({ expenses }: ExpensesProps) {
             </td>
             <td>
               <select
-                name="category"
+                name="categoryId"
                 className="ml-2 form-select rounded min-w-[80%]"
-                value={newExpense.category}
+                value={newExpense.categoryId}
                 onChange={handleChange}
               >
                 <option value="">Selecione...</option>
                 {categories.map((category) => (
-                  <option key={category.title} value={`${category.title}`}>
+                  <option key={category.title} value={`${category.id}`}>
                     {category.title}
                   </option>
                 ))}

@@ -31,7 +31,6 @@ export function createApolloClient(accessToken:string | undefined) {
   });
   const authLink = setContext((_, { headers }) => {
     let token;
-    console.log(accessToken);
     if(accessToken != undefined){
       token = accessToken;
     } else {

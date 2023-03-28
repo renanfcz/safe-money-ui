@@ -47,7 +47,6 @@ export default function Dashboard() {
         query: DASHBOARD_SUMARY,
       })
       .then((result) => {
-        console.log(result);
         setSummary(result.data.getSumaryDashboard);
       })
       .catch((error) => {
