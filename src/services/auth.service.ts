@@ -1,22 +1,17 @@
 import { createApolloClient } from "@/lib/apollo-client";
 import { IS_VALID_TOKEN } from "@/queries/auth.queries";
+import { GraphQLClient } from "graphql-request";
 
 export async function isValidToken(token: string) {
   const apollo = createApolloClient(token);
 
   const result = await apollo.query({ query: IS_VALID_TOKEN });
 
-  if(result.error) {
+  if (result.error) {
     return false;
   } else {
     return true;
   }
-  // .then((result) => {
-  //   return true;
-  // })
-  // .catch((error) => {
-  //   return false;
-  // });
 }
 
 export function getToken() {
@@ -28,4 +23,32 @@ export function getToken() {
         )
       : "";
   return token;
+}
+
+export async function executeMutation(
+  query: string,
+  variables: any,
+  token: string
+): Promise<any> {
+  const URI = process.env.GRAPHQL_API;
+
+  const graphqlClient = new GraphQLClient(!!URI ? URI : "", {
+    headers: {
+      Authorization: `${!!token ? "Bearer " + token : ""}`,
+    },
+  });
+
+  return await graphqlClient.request(query, variables);
+}
+
+export async function executeQuery(query: string, token: string): Promise<any> {
+  const URI = process.env.GRAPHQL_API;
+
+  const graphqlClient = new GraphQLClient(!!URI ? URI : "", {
+    headers: {
+      Authorization: `${!!token ? "Bearer " + token : ""}`,
+    },
+  });
+
+  return await graphqlClient.request(query);
 }

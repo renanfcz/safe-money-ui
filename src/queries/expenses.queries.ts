@@ -1,4 +1,4 @@
-import { gql } from "@apollo/client";
+import { gql } from "graphql-request";
 
 export const EXPENSES = gql`
   query FindAllExpenses {
@@ -23,17 +23,14 @@ export const INSERT_EXPENSE = gql`
   mutation CreateExpense($data: ExpenseCreateInput!) {
     createExpense(data: $data) {
       id
-      title
-      description
-      createdAt
-      value
-      status
-      month
-      year
-      category {
-        title
-        description
-      }
+    }
+  }
+`;
+
+export const REMOVE_EXPENSE = gql`
+  mutation RemoveExpense($removeExpenseId: String!) {
+    removeExpense(id: $removeExpenseId) {
+      id
     }
   }
 `;

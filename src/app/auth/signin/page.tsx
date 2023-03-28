@@ -1,41 +1,36 @@
-"use client"
-import { apolloClient, setAccessToken } from "@/lib/apollo-client";
-import { gql } from "@apollo/client";
+"use client";
+import { setAccessToken } from "@/lib/apollo-client";
+import { executeMutation } from "@/services/auth.service";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { useMutation } from "react-query";
+import { LOGIN_USER } from "../../../queries/auth.queries";
 
-const LOGIN_USER = gql`
-  mutation Login($authInput: AuthInput!) {
-    login(authInput: $authInput) {
-      token
-    }
-  }
-`;
+type LoginResponse = {
+  login: {
+    token: string;
+  };
+};
 
 export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const mutation = useMutation({
+    mutationFn: () => {
+      const variables = { authInput: { email, password } };
+      return executeMutation(LOGIN_USER, variables, "");
+    },
+    onSuccess: ({ login }: LoginResponse) => {
+      setAccessToken(login.token);
+      router.push("/dashboard");
+    },
+  });
+
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
-    apolloClient
-      .mutate({
-        mutation: LOGIN_USER,
-        variables: {
-          authInput: {
-            email,
-            password,
-          },
-        },
-      })
-      .then((result) => {
-        setAccessToken(result.data.login.token);
-        router.push("/dashboard");
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+    await mutation.mutate();
   };
 
   return (

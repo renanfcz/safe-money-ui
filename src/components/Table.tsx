@@ -1,20 +1,24 @@
 "use client";
-import { getAllStatus } from "@/enums/status.enum";
-import { createApolloClient } from "@/lib/apollo-client";
-import { Expense } from "@/models/Expense";
-import { CATEGORIES } from "@/queries/category.queries";
-import { INSERT_EXPENSE } from "@/queries/expenses.queries";
-import { getToken } from "@/services/auth.service";
-import { Edit, Trash2, Save, X } from "lucide-react";
-import { useState, useEffect } from "react";
-import { DeleteModal } from "./DeleteModal";
+import { getAllStatus } from '@/enums/status.enum';
+import { Expense } from '@/models/Expense';
+import { CATEGORIES } from '@/queries/category.queries';
+import { INSERT_EXPENSE, REMOVE_EXPENSE } from '@/queries/expenses.queries';
+import { executeMutation, executeQuery, getToken } from '@/services/auth.service';
+import { Edit, Save, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from 'react-query';
+import { DeleteModal } from './DeleteModal';
 
 interface ExpensesProps {
   expenses: Expense[];
 }
-type Category = {
-  title: string;
-  id: string;
+type Categories = {
+  findAllCategories: [
+    {
+      title: string;
+      id: string;
+    }
+  ];
 };
 
 type NewExpense = {
@@ -24,7 +28,7 @@ type NewExpense = {
   value: number;
   status: string;
   month: string;
-  year: string;
+  year: number;
 };
 
 function formatCurrency(value: number) {
@@ -49,10 +53,9 @@ function getTotal({ expenses }: ExpensesProps) {
 }
 
 export function Table({ expenses }: ExpensesProps) {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([
-    { id: "", title: "" },
-  ]);
+  const [idToDelete, setIdToDelete] = useState("");
   const [newExpense, setNewExpense] = useState<NewExpense>({
     title: "",
     description: "",
@@ -60,26 +63,19 @@ export function Table({ expenses }: ExpensesProps) {
     value: 0,
     status: "",
     month: "",
-    year: "",
+    year: 0,
   });
 
-  useEffect(() => {
-    const apollo = createApolloClient(getToken());
-    apollo
-      .query({ query: CATEGORIES })
-      .then((result) => setCategories(result.data.findAllCategories))
-      .catch((error) => {
-        console.log(error);
-      });
-  }, []);
+  const categories = useQuery({
+    queryKey: "categories",
+    queryFn: (): Promise<Categories> => {
+      return executeQuery(CATEGORIES, getToken());
+    },
+  });
 
-  const openModal = () => {
-    setIsOpen(true);
-  };
-  const closeModal = () => setIsOpen(false);
-
-  const handleDelete = () => {
-    closeModal();
+  const handleDelete = (id: string) => {
+    setIsOpen(false);
+    deleteExpense.mutate(id);
   };
 
   const handleChange = (
@@ -88,28 +84,44 @@ export function Table({ expenses }: ExpensesProps) {
     setNewExpense({ ...newExpense, [e.target.name]: e.target.value });
   };
 
-  const handleInsert = (expense: NewExpense) => {
-    const apollo = createApolloClient(getToken());
-    apollo
-      .mutate({
-        mutation: INSERT_EXPENSE,
-        variables: {
-          data: {
-            title: newExpense.title,
-            description: newExpense.description,
-            categoryId: newExpense.categoryId,
-            value: parseFloat(newExpense.value.toString()),
-            status: newExpense.status,
-            month: expenses[0].month,
-            year: expenses[0].year,
-          },
-        },
-      })
-      .then((result) => console.log(result))
-      .catch((error) => {
-        console.log(error);
-      });
+  const insertExpense = useMutation({
+    mutationFn: (expense: NewExpense) => {
+      const variables = { data: expense };
+      return executeMutation(INSERT_EXPENSE, variables, getToken());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    }
+  });
+
+  const deleteExpense = useMutation({
+    mutationFn: (id: string) => {
+      const variables = { removeExpenseId: id };
+      return executeMutation(REMOVE_EXPENSE, variables, getToken());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    }
+  });
+
+  const handleInsert = async (expense: NewExpense) => {
+    const newExpense = {
+      title: expense.title,
+      description: expense.description,
+      categoryId: expense.categoryId,
+      value: parseFloat(expense.value.toString()),
+      status: expense.status,
+      month: expenses[0]?.month,
+      year: expenses[0]?.year,
+    };
+
+    await insertExpense.mutate(newExpense);
   };
+
+  function openModal(id: string) {
+    setIsOpen(true);
+    setIdToDelete(id);
+  }
 
   return (
     <div className="flex flex-col justify-center m-5 rounded shadow bg-white">
@@ -166,7 +178,7 @@ export function Table({ expenses }: ExpensesProps) {
                   <Edit />
                 </button>
                 <button
-                  onClick={() => openModal()}
+                  onClick={() => openModal(expense.id)}
                   className="border-none text-red-600"
                 >
                   <Trash2 />
@@ -196,19 +208,23 @@ export function Table({ expenses }: ExpensesProps) {
               />
             </td>
             <td>
-              <select
-                name="categoryId"
-                className="ml-2 form-select rounded min-w-[80%]"
-                value={newExpense.categoryId}
-                onChange={handleChange}
-              >
-                <option value="">Selecione...</option>
-                {categories.map((category) => (
-                  <option key={category.title} value={`${category.id}`}>
-                    {category.title}
-                  </option>
-                ))}
-              </select>
+              {categories.isLoading ? (
+                <p>Carregando...</p>
+              ) : (
+                <select
+                  name="categoryId"
+                  className="ml-2 form-select rounded min-w-[80%]"
+                  value={newExpense.categoryId}
+                  onChange={handleChange}
+                >
+                  <option value="">Selecione...</option>
+                  {categories.data?.findAllCategories.map((category) => (
+                    <option key={category.title} value={`${category.id}`}>
+                      {category.title}
+                    </option>
+                  ))}
+                </select>
+              )}
             </td>
             <td>
               <input
@@ -260,8 +276,8 @@ export function Table({ expenses }: ExpensesProps) {
       </div>
       <DeleteModal
         isOpen={isOpen}
-        onRequestClose={closeModal}
-        onConfirm={handleDelete}
+        onRequestClose={() => setIsOpen(false)}
+        onConfirm={()=>handleDelete(idToDelete)}
         textMessage="Deseja realmente excluir essa despesa?"
       />
     </div>

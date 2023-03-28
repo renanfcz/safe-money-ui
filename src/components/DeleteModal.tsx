@@ -32,13 +32,13 @@ export function DeleteModal({
         <div className="flex justify-end">
           <button
             className="min-w-[102px] hover:bg-gray-200 text-black border border-black py-2 px-4 rounded mr-2"
-            onClick={handleConfirm}
+            onClick={onRequestClose}
           >
             Cancelar
           </button>
           <button
             className="min-w-[102px] bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded"
-            onClick={onRequestClose}
+            onClick={handleConfirm}
           >
             Excluir
           </button>
