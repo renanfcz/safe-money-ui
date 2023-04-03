@@ -41,7 +41,7 @@ export async function executeMutation(
   return await graphqlClient.request(query, variables);
 }
 
-export async function executeQuery(query: string, token: string): Promise<any> {
+export async function executeQuery(query: string, variables: any, token: string): Promise<any> {
   const URI = process.env.GRAPHQL_API;
 
   const graphqlClient = new GraphQLClient(!!URI ? URI : "", {
@@ -50,5 +50,5 @@ export async function executeQuery(query: string, token: string): Promise<any> {
     },
   });
 
-  return await graphqlClient.request(query);
+  return await graphqlClient.request(query, variables);
 }

@@ -1,22 +1,22 @@
 import { gql } from "graphql-request";
 
 export const EXPENSES = gql`
-  query FindAllExpenses {
-    findAllExpenses {
-      id
+  query FindAllExpensesGrouping {
+  findAllExpensesGrouping {
+    id
+    month
+    year
+    expenses {
       title
       description
-      createdAt
       value
       status
-      month
-      year
       category {
         title
-        description
       }
     }
   }
+}
 `;
 
 export const INSERT_EXPENSE = gql`

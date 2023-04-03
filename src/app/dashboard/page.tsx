@@ -1,11 +1,14 @@
-"use client"
-
-import { Summary } from '@/components/Summary';
-import { Table } from '@/components/Table';
-import { DASHBOARD_SUMARY } from '@/queries/dashboard.queries';
-import { EXPENSES } from '@/queries/expenses.queries';
-import { executeQuery, getToken } from '@/services/auth.service';
-import { useQuery } from 'react-query';
+"use client";
+import { Summary } from "@/components/Summary";
+import { Table } from "@/components/Table";
+import { Expense } from "@/models/Expense";
+import { EXPENSES } from "@/queries/expenses.queries";
+import { executeQuery, getToken } from "@/services/auth.service";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQuery } from "react-query";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation } from "swiper";
 
 interface SummaryProps {
   getSumaryDashboard: {
@@ -16,51 +19,81 @@ interface SummaryProps {
   };
 }
 
-interface ExpensesProps {
-  findAllExpenses: [];
+interface ExpenseGroupsProps {
+  findAllExpensesGrouping: [];
+}
+
+interface ExpenseGroup {
+  id: string;
+  month: string;
+  year: number;
+  expenses: Expense[];
 }
 
 export default function Dashboard() {
+  const [amountPaid, setAmountPaid] = useState(0);
+  const [amountToPay, setAmountToPay] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [remainingBalance, setRemainingBalance] = useState(0);
+  const [currentPosition, setCurrentPosition] = useState(0);
 
-  const summary = useQuery({
-    queryKey: ["summary"],
-    queryFn: (): Promise<SummaryProps> => {
-      return executeQuery(DASHBOARD_SUMARY, getToken());
-    },
-    initialData: {
-      getSumaryDashboard: {
-        amountPaid: 0,
-        amountToPay: 0,
-        totalExpenses: 0,
-        remainingBalance: 0,
-      },
-    },
-  });
-
-  const expenses = useQuery({
+  const expenseGroups = useQuery({
     queryKey: ["expenses"],
-    queryFn: (): Promise<ExpensesProps> => {
-      return executeQuery(EXPENSES, getToken());
+    queryFn: (): Promise<ExpenseGroupsProps> => {
+      return executeQuery(EXPENSES, null, getToken());
     },
     initialData: {
-      findAllExpenses: [],
+      findAllExpensesGrouping: [],
     },
   });
+
+  const handlePrevious = () => {};
+  function handleNext() {
+    setCurrentPosition(52);
+  }
 
   return (
     <div>
       <h1 className="text-white font-bold m-2">Dashboard</h1>
       <Summary
-        amountPaid={summary.data?.getSumaryDashboard.amountPaid!}
-        amountToPay={summary.data?.getSumaryDashboard.amountToPay!}
-        totalExpenses={summary.data?.getSumaryDashboard.totalExpenses!}
-        remainingBalance={summary.data?.getSumaryDashboard.remainingBalance!}
+        amountPaid={amountPaid}
+        amountToPay={amountToPay}
+        totalExpenses={totalExpenses}
+        remainingBalance={remainingBalance}
       />
-      {expenses.isLoading ? (
-        <p>Carregando...</p>
-      ) : (
-        <Table expenses={expenses.data?.findAllExpenses!} />
-      )}
+      <div>
+        <div className="bg-white mt-5 flex justify-between">
+          <button onClick={() => handlePrevious}>
+            <ChevronLeft />
+          </button>
+          <button onClick={() => handleNext}>
+            <ChevronRight />
+          </button>
+        </div>
+          {expenseGroups.isLoading ? (
+            <p>Carregando...</p>
+          ) : (
+            <Swiper
+              modules={[Navigation]}
+              navigation={true}
+              onSlideChange={() => console.log("slide change")}
+              onSwiper={(swiper) => console.log(swiper)}
+            >
+              {expenseGroups.data?.findAllExpensesGrouping.map(
+                (group: ExpenseGroup) => (
+                  <SwiperSlide key={group.id}>
+                    <Table
+                      month={group.month}
+                      year={group.year}
+                      expenses={group.expenses}
+                      key={group.id}
+                    />
+                  </SwiperSlide>
+                )
+              )}
+            </Swiper>
+          )}
+      </div>
     </div>
   );
 }
